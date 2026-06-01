@@ -112,3 +112,26 @@ The API implements standardized error responses according to **RFC 7807 (Problem
     }
   ]
 }
+```
+
+
+## 9. Authentication & Authorization
+* **Authentication:** The API relies on **OAuth 2.0** with **JSON Web Tokens (JWT)**. Clients must include the token in the `Authorization: Bearer <token>` header. If the token is missing or invalid, the API returns **`401 Unauthorized`**.
+* **Authorization:** Role-Based Access Control (RBAC) is enforced at the endpoint level. If a user attempts to access a resource without proper permissions, the API returns **`403 Forbidden`**.
+    * **ADMIN:** Full access to all resources.
+    * **VET:** Can Read/Update medical records and view appointments.
+    * **OWNER:** Can Read/Update their own profile, register pets, and book appointments.
+
+## 10. Caching Strategy
+To minimize database load and improve response times, caching is heavily utilized for read-heavy operations:
+* **Reference Data** (e.g., Species/Breeds lists): Cached aggressively using `Cache-Control: max-age=86400, public`.
+* **Resource Endpoints** (e.g., `GET /pets/{id}`): Utilizes `ETag` headers. If a client sends an `If-None-Match` header matching the current ETag, the server responds with **`304 Not Modified`**, saving bandwidth.
+* **Non-Cached Operations:** `POST`, `PATCH`, `PUT`, and `DELETE` requests are never cached, as they mutate state.
+
+## 11. Rate Limiting
+To prevent abuse, rate limiting is applied globally per client IP and authenticated user token:
+* **Standard Tier:** 100 requests per minute.
+* If exceeded, the API responds with **`429 Too Many Requests`** and includes a `Retry-After` header indicating when to try again.
+
+## 12. API Versioning
+The API uses **URI Versioning** (e.g., `/api/v1/...`). This approach ensures that breaking changes (like payload restructuring) can be introduced in `/v2` without disrupting existing client applications integrating with `/v1`.
